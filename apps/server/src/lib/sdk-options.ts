@@ -173,18 +173,6 @@ function buildClaudeMdOptions(config: CreateSdkOptionsConfig): {
     result.systemPrompt.append = config.systemPrompt;
   }
 
-  console.log(
-    '[SDK Options] CLAUDE.md auto-loading enabled:',
-    JSON.stringify(
-      {
-        systemPrompt: result.systemPrompt,
-        settingSources: result.settingSources,
-      },
-      null,
-      2
-    )
-  );
-
   return result;
 }
 

@@ -32,6 +32,7 @@ import {
 } from '../lib/sdk-options.js';
 import { FeatureLoader } from './feature-loader.js';
 import type { SettingsService } from './settings-service.js';
+import { getAutoLoadClaudeMdSetting } from '../lib/settings-helpers.js';
 
 const execAsync = promisify(exec);
 
@@ -1100,7 +1101,11 @@ Format your response as a structured markdown document.`;
       const provider = ProviderFactory.getProviderForModel(analysisModel);
 
       // Load autoLoadClaudeMd setting
-      const autoLoadClaudeMd = await this.getAutoLoadClaudeMdSetting(projectPath);
+      const autoLoadClaudeMd = await getAutoLoadClaudeMdSetting(
+        projectPath,
+        this.settingsService,
+        '[AutoMode]'
+      );
 
       // Use createCustomOptions for centralized SDK configuration with CLAUDE.md support
       const sdkOptions = createCustomOptions({
@@ -1797,7 +1802,11 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
     }
 
     // Load autoLoadClaudeMd setting (project setting takes precedence over global)
-    const autoLoadClaudeMd = await this.getAutoLoadClaudeMdSetting(finalProjectPath);
+    const autoLoadClaudeMd = await getAutoLoadClaudeMdSetting(
+      finalProjectPath,
+      this.settingsService,
+      '[AutoMode]'
+    );
 
     // Build SDK options using centralized configuration for feature implementation
     const sdkOptions = createAutoModeOptions({
@@ -2514,36 +2523,5 @@ Begin implementing task ${task.id} now.`;
         );
       }
     });
-  }
-
-  /**
-   * Get the autoLoadClaudeMd setting, with project settings taking precedence over global.
-   * Returns false if settings service is not available.
-   */
-  private async getAutoLoadClaudeMdSetting(projectPath: string): Promise<boolean> {
-    if (!this.settingsService) {
-      console.log('[AutoMode] SettingsService not available, autoLoadClaudeMd disabled');
-      return false;
-    }
-
-    try {
-      // Check project settings first (takes precedence)
-      const projectSettings = await this.settingsService.getProjectSettings(projectPath);
-      if (projectSettings.autoLoadClaudeMd !== undefined) {
-        console.log(
-          `[AutoMode] autoLoadClaudeMd from project settings: ${projectSettings.autoLoadClaudeMd}`
-        );
-        return projectSettings.autoLoadClaudeMd;
-      }
-
-      // Fall back to global settings
-      const globalSettings = await this.settingsService.getGlobalSettings();
-      const result = globalSettings.autoLoadClaudeMd ?? false;
-      console.log(`[AutoMode] autoLoadClaudeMd from global settings: ${result}`);
-      return result;
-    } catch (error) {
-      console.error('[AutoMode] Failed to load autoLoadClaudeMd setting:', error);
-      return false;
-    }
   }
 }

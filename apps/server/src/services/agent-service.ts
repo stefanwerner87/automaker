@@ -17,6 +17,7 @@ import { ProviderFactory } from '../providers/provider-factory.js';
 import { createChatOptions, validateWorkingDirectory } from '../lib/sdk-options.js';
 import { PathNotAllowedError } from '@automaker/platform';
 import type { SettingsService } from './settings-service.js';
+import { getAutoLoadClaudeMdSetting } from '../lib/settings-helpers.js';
 
 interface Message {
   id: string;
@@ -190,7 +191,11 @@ export class AgentService {
       const effectiveWorkDir = workingDirectory || session.workingDirectory;
 
       // Load autoLoadClaudeMd setting (project setting takes precedence over global)
-      const autoLoadClaudeMd = await this.getAutoLoadClaudeMdSetting(effectiveWorkDir);
+      const autoLoadClaudeMd = await getAutoLoadClaudeMdSetting(
+        effectiveWorkDir,
+        this.settingsService,
+        '[AgentService]'
+      );
 
       // Load project context files (CLAUDE.md, CODE_QUALITY.md, etc.)
       // Note: When autoLoadClaudeMd is enabled, SDK handles CLAUDE.md loading via settingSources
@@ -602,37 +607,6 @@ You have full access to the codebase and can:
 - Run bash commands
 - Search for code patterns
 - Execute tests and builds`;
-  }
-
-  /**
-   * Get the autoLoadClaudeMd setting, with project settings taking precedence over global.
-   * Returns false if settings service is not available.
-   */
-  private async getAutoLoadClaudeMdSetting(projectPath: string): Promise<boolean> {
-    if (!this.settingsService) {
-      console.log('[AgentService] SettingsService not available, autoLoadClaudeMd disabled');
-      return false;
-    }
-
-    try {
-      // Check project settings first (takes precedence)
-      const projectSettings = await this.settingsService.getProjectSettings(projectPath);
-      if (projectSettings.autoLoadClaudeMd !== undefined) {
-        console.log(
-          `[AgentService] autoLoadClaudeMd from project settings: ${projectSettings.autoLoadClaudeMd}`
-        );
-        return projectSettings.autoLoadClaudeMd;
-      }
-
-      // Fall back to global settings
-      const globalSettings = await this.settingsService.getGlobalSettings();
-      const result = globalSettings.autoLoadClaudeMd ?? false;
-      console.log(`[AgentService] autoLoadClaudeMd from global settings: ${result}`);
-      return result;
-    } catch (error) {
-      console.error('[AgentService] Failed to load autoLoadClaudeMd setting:', error);
-      return false;
-    }
   }
 
   private generateId(): string {

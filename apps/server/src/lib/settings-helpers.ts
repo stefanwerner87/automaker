@@ -15,7 +15,7 @@ import type { SettingsService } from '../services/settings-service.js';
  */
 export async function getAutoLoadClaudeMdSetting(
   projectPath: string,
-  settingsService?: SettingsService,
+  settingsService?: SettingsService | null,
   logPrefix = '[SettingsHelper]'
 ): Promise<boolean> {
   if (!settingsService) {
@@ -40,6 +40,6 @@ export async function getAutoLoadClaudeMdSetting(
     return result;
   } catch (error) {
     console.error(`${logPrefix} Failed to load autoLoadClaudeMd setting:`, error);
-    return false;
+    throw error;
   }
 }
