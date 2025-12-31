@@ -8,8 +8,13 @@
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 import * as os from 'os';
-import * as fs from 'fs';
 import * as path from 'path';
+// secureFs is used for user-controllable paths (working directory validation)
+// to enforce ALLOWED_ROOT_DIRECTORY security boundary
+import * as secureFs from '../lib/secure-fs.js';
+// System paths module handles shell binary checks and WSL detection
+// These are system paths outside ALLOWED_ROOT_DIRECTORY, centralized for security auditing
+import { systemPathExists, systemPathReadFileSync, getWslVersionPath } from '@automaker/platform';
 
 // Maximum scrollback buffer size (characters)
 const MAX_SCROLLBACK_SIZE = 50000; // ~50KB per terminal
@@ -68,7 +73,7 @@ export class TerminalService extends EventEmitter {
     if (platform === 'linux' && this.isWSL()) {
       // In WSL, prefer the user's configured shell or bash
       const userShell = process.env.SHELL || '/bin/bash';
-      if (fs.existsSync(userShell)) {
+      if (systemPathExists(userShell)) {
         return { shell: userShell, args: ['--login'] };
       }
       return { shell: '/bin/bash', args: ['--login'] };
@@ -80,10 +85,10 @@ export class TerminalService extends EventEmitter {
         const pwsh = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
         const pwshCore = 'C:\\Program Files\\PowerShell\\7\\pwsh.exe';
 
-        if (fs.existsSync(pwshCore)) {
+        if (systemPathExists(pwshCore)) {
           return { shell: pwshCore, args: [] };
         }
-        if (fs.existsSync(pwsh)) {
+        if (systemPathExists(pwsh)) {
           return { shell: pwsh, args: [] };
         }
         return { shell: 'cmd.exe', args: [] };
@@ -92,10 +97,10 @@ export class TerminalService extends EventEmitter {
       case 'darwin': {
         // macOS: prefer user's shell, then zsh, then bash
         const userShell = process.env.SHELL;
-        if (userShell && fs.existsSync(userShell)) {
+        if (userShell && systemPathExists(userShell)) {
           return { shell: userShell, args: ['--login'] };
         }
-        if (fs.existsSync('/bin/zsh')) {
+        if (systemPathExists('/bin/zsh')) {
           return { shell: '/bin/zsh', args: ['--login'] };
         }
         return { shell: '/bin/bash', args: ['--login'] };
@@ -105,10 +110,10 @@ export class TerminalService extends EventEmitter {
       default: {
         // Linux: prefer user's shell, then bash, then sh
         const userShell = process.env.SHELL;
-        if (userShell && fs.existsSync(userShell)) {
+        if (userShell && systemPathExists(userShell)) {
           return { shell: userShell, args: ['--login'] };
         }
-        if (fs.existsSync('/bin/bash')) {
+        if (systemPathExists('/bin/bash')) {
           return { shell: '/bin/bash', args: ['--login'] };
         }
         return { shell: '/bin/sh', args: [] };
@@ -122,8 +127,9 @@ export class TerminalService extends EventEmitter {
   isWSL(): boolean {
     try {
       // Check /proc/version for Microsoft/WSL indicators
-      if (fs.existsSync('/proc/version')) {
-        const version = fs.readFileSync('/proc/version', 'utf-8').toLowerCase();
+      const wslVersionPath = getWslVersionPath();
+      if (systemPathExists(wslVersionPath)) {
+        const version = systemPathReadFileSync(wslVersionPath, 'utf-8').toLowerCase();
         return version.includes('microsoft') || version.includes('wsl');
       }
       // Check for WSL environment variable
@@ -157,8 +163,9 @@ export class TerminalService extends EventEmitter {
   /**
    * Validate and resolve a working directory path
    * Includes basic sanitization against null bytes and path normalization
+   * Uses secureFs to enforce ALLOWED_ROOT_DIRECTORY for user-provided paths
    */
-  private resolveWorkingDirectory(requestedCwd?: string): string {
+  private async resolveWorkingDirectory(requestedCwd?: string): Promise<string> {
     const homeDir = os.homedir();
 
     // If no cwd requested, use home
@@ -187,15 +194,19 @@ export class TerminalService extends EventEmitter {
     }
 
     // Check if path exists and is a directory
+    // Using secureFs.stat to enforce ALLOWED_ROOT_DIRECTORY security boundary
+    // This prevents terminals from being opened in directories outside the allowed workspace
     try {
-      const stat = fs.statSync(cwd);
-      if (stat.isDirectory()) {
+      const statResult = await secureFs.stat(cwd);
+      if (statResult.isDirectory()) {
         return cwd;
       }
       console.warn(`[Terminal] Path exists but is not a directory: ${cwd}, falling back to home`);
       return homeDir;
     } catch {
-      console.warn(`[Terminal] Working directory does not exist: ${cwd}, falling back to home`);
+      console.warn(
+        `[Terminal] Working directory does not exist or not allowed: ${cwd}, falling back to home`
+      );
       return homeDir;
     }
   }
@@ -228,7 +239,7 @@ export class TerminalService extends EventEmitter {
    * Create a new terminal session
    * Returns null if the maximum session limit has been reached
    */
-  createSession(options: TerminalOptions = {}): TerminalSession | null {
+  async createSession(options: TerminalOptions = {}): Promise<TerminalSession | null> {
     // Check session limit
     if (this.sessions.size >= maxSessions) {
       console.error(`[Terminal] Max sessions (${maxSessions}) reached, refusing new session`);
@@ -241,7 +252,8 @@ export class TerminalService extends EventEmitter {
     const shell = options.shell || detectedShell;
 
     // Validate and resolve working directory
-    const cwd = this.resolveWorkingDirectory(options.cwd);
+    // Uses secureFs internally to enforce ALLOWED_ROOT_DIRECTORY
+    const cwd = await this.resolveWorkingDirectory(options.cwd);
 
     // Build environment with some useful defaults
     // These settings ensure consistent terminal behavior across platforms

@@ -566,14 +566,15 @@ export class HttpApiClient implements ElectronAPI {
     const result = await this.post<{
       success: boolean;
       path?: string;
+      isAllowed?: boolean;
       error?: string;
     }>('/api/fs/validate-path', { filePath: path });
 
-    if (result.success && result.path) {
+    if (result.success && result.path && result.isAllowed !== false) {
       return { canceled: false, filePaths: [result.path] };
     }
 
-    console.error('Invalid directory:', result.error);
+    console.error('Invalid directory:', result.error || 'Path not allowed');
     return { canceled: true, filePaths: [] };
   }
 
