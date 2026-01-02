@@ -2816,12 +2816,12 @@ Review the previous work and continue the implementation. If the feature appears
       };
     }
 
-    // Find the step using PipelineService
-    const step = await pipelineService.getStep(projectPath, stepId);
+    // Find the step directly from config (already loaded, avoid redundant file read)
     const sortedSteps = [...config.steps].sort((a, b) => a.order - b.order);
     const stepIndex = sortedSteps.findIndex((s) => s.id === stepId);
+    const step = stepIndex === -1 ? null : sortedSteps[stepIndex];
 
-    if (stepIndex === -1 || !step) {
+    if (!step) {
       // Step not found in current config - step was deleted/changed
       console.warn(
         `[AutoMode] Feature ${featureId} stuck in step ${stepId} which no longer exists in pipeline config`
