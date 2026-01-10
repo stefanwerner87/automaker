@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Bot, Wand2, Settings2, GitBranch } from 'lucide-react';
 import { UsagePopover } from '@/components/usage-popover';
 import { useAppStore } from '@/store/app-store';
@@ -107,27 +108,47 @@ export function BoardHeader({
           </div>
         )}
 
-        {/* Concurrency Slider - only show after mount to prevent hydration issues */}
+        {/* Concurrency Control - only show after mount to prevent hydration issues */}
         {isMounted && (
-          <div className={controlContainerClass} data-testid="concurrency-slider-container">
-            <Bot className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Agents</span>
-            <Slider
-              value={[maxConcurrency]}
-              onValueChange={(value) => onConcurrencyChange(value[0])}
-              min={1}
-              max={10}
-              step={1}
-              className="w-20"
-              data-testid="concurrency-slider"
-            />
-            <span
-              className="text-sm text-muted-foreground min-w-[5ch] text-center"
-              data-testid="concurrency-value"
-            >
-              {runningAgentsCount} / {maxConcurrency}
-            </span>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className={`${controlContainerClass} cursor-pointer hover:bg-accent/50 transition-colors`}
+                data-testid="concurrency-slider-container"
+              >
+                <Bot className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Agents</span>
+                <span className="text-sm text-muted-foreground" data-testid="concurrency-value">
+                  {runningAgentsCount}/{maxConcurrency}
+                </span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64" align="end">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-sm mb-1">Max Concurrent Agents</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Controls how many AI agents can run simultaneously. Higher values process more
+                    features in parallel but use more API resources.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Slider
+                    value={[maxConcurrency]}
+                    onValueChange={(value) => onConcurrencyChange(value[0])}
+                    min={1}
+                    max={10}
+                    step={1}
+                    className="flex-1"
+                    data-testid="concurrency-slider"
+                  />
+                  <span className="text-sm font-medium min-w-[2ch] text-right">
+                    {maxConcurrency}
+                  </span>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         )}
 
         {/* Auto Mode Toggle - only show after mount to prevent hydration issues */}

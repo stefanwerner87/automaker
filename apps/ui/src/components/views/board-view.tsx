@@ -7,7 +7,24 @@ import {
   useSensors,
   rectIntersection,
   pointerWithin,
+  type PointerEvent as DndPointerEvent,
 } from '@dnd-kit/core';
+
+// Custom pointer sensor that ignores drag events from within dialogs
+class DialogAwarePointerSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({ nativeEvent: event }: { nativeEvent: DndPointerEvent }) => {
+        // Don't start drag if the event originated from inside a dialog
+        if ((event.target as Element)?.closest?.('[role="dialog"]')) {
+          return false;
+        }
+        return true;
+      },
+    },
+  ];
+}
 import { useAppStore, Feature } from '@/store/app-store';
 import { getElectronAPI } from '@/lib/electron';
 import { getHttpApiClient } from '@/lib/http-api-client';
@@ -73,8 +90,6 @@ export function BoardView() {
     maxConcurrency,
     setMaxConcurrency,
     defaultSkipTests,
-    kanbanCardDetailLevel,
-    setKanbanCardDetailLevel,
     boardViewMode,
     setBoardViewMode,
     specCreatingForProject,
@@ -248,7 +263,7 @@ export function BoardView() {
   }, []);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(DialogAwarePointerSensor, {
       activationConstraint: {
         distance: 8,
       },
@@ -1209,8 +1224,6 @@ export function BoardView() {
             onShowBoardBackground={() => setShowBoardBackgroundModal(true)}
             onShowCompletedModal={() => setShowCompletedModal(true)}
             completedCount={completedFeatures.length}
-            kanbanCardDetailLevel={kanbanCardDetailLevel}
-            onDetailLevelChange={setKanbanCardDetailLevel}
             boardViewMode={boardViewMode}
             onBoardViewModeChange={setBoardViewMode}
           />

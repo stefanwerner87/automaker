@@ -3,7 +3,7 @@ import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/button';
 import { KanbanColumn, KanbanCard } from './components';
-import { Feature } from '@/store/app-store';
+import { Feature, useAppStore, formatShortcut } from '@/store/app-store';
 import { Archive, Settings2, CheckSquare, GripVertical, Plus } from 'lucide-react';
 import { useResponsiveKanban } from '@/hooks/use-responsive-kanban';
 import { getColumnsWithPipeline, type ColumnId } from './constants';
@@ -89,6 +89,10 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   // Generate columns including pipeline steps
   const columns = useMemo(() => getColumnsWithPipeline(pipelineConfig), [pipelineConfig]);
+
+  // Get the keyboard shortcut for adding features
+  const { keyboardShortcuts } = useAppStore();
+  const addFeatureShortcut = keyboardShortcuts.addFeature || 'N';
 
   // Use responsive column widths based on window size
   // containerStyle handles centering and ensures columns fit without horizontal scroll in Electron
@@ -196,6 +200,9 @@ export function KanbanBoard({
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Feature
+                      <span className="ml-auto pl-2 text-[10px] font-mono opacity-70 bg-black/20 px-1.5 py-0.5 rounded">
+                        {formatShortcut(addFeatureShortcut, true)}
+                      </span>
                     </Button>
                   ) : undefined
                 }

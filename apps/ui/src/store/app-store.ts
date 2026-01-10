@@ -114,8 +114,6 @@ function saveThemeToStorage(theme: ThemeMode): void {
   setItem(THEME_STORAGE_KEY, theme);
 }
 
-export type KanbanCardDetailLevel = 'minimal' | 'standard' | 'detailed';
-
 export type BoardViewMode = 'kanban' | 'graph';
 
 export interface ApiKeys {
@@ -508,7 +506,6 @@ export interface AppState {
   maxConcurrency: number; // Maximum number of concurrent agent tasks
 
   // Kanban Card Display Settings
-  kanbanCardDetailLevel: KanbanCardDetailLevel; // Level of detail shown on kanban cards
   boardViewMode: BoardViewMode; // Whether to show kanban or dependency graph view
 
   // Feature Default Settings
@@ -874,7 +871,6 @@ export interface AppActions {
   setMaxConcurrency: (max: number) => void;
 
   // Kanban Card Settings actions
-  setKanbanCardDetailLevel: (level: KanbanCardDetailLevel) => void;
   setBoardViewMode: (mode: BoardViewMode) => void;
 
   // Feature Default Settings actions
@@ -1127,7 +1123,6 @@ const initialState: AppState = {
   autoModeByProject: {},
   autoModeActivityLog: [],
   maxConcurrency: 3, // Default to 3 concurrent agents
-  kanbanCardDetailLevel: 'standard', // Default to standard detail level
   boardViewMode: 'kanban', // Default to kanban view
   defaultSkipTests: true, // Default to manual verification (tests disabled)
   enableDependencyBlocking: true, // Default to enabled (show dependency blocking UI)
@@ -1731,7 +1726,6 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
   setMaxConcurrency: (max) => set({ maxConcurrency: max }),
 
   // Kanban Card Settings actions
-  setKanbanCardDetailLevel: (level) => set({ kanbanCardDetailLevel: level }),
   setBoardViewMode: (mode) => set({ boardViewMode: mode }),
 
   // Feature Default Settings actions

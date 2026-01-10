@@ -1858,7 +1858,6 @@ export class HttpApiClient implements ElectronAPI {
         theme: string;
         sidebarOpen: boolean;
         chatHistoryOpen: boolean;
-        kanbanCardDetailLevel: string;
         maxConcurrency: number;
         defaultSkipTests: boolean;
         enableDependencyBlocking: boolean;
