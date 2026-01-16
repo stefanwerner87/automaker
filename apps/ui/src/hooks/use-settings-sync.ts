@@ -33,6 +33,8 @@ const SYNC_DEBOUNCE_MS = 1000;
 // Fields to sync to server (subset of AppState that should be persisted)
 const SETTINGS_FIELDS_TO_SYNC = [
   'theme',
+  'fontFamilySans',
+  'fontFamilyMono',
   'sidebarOpen',
   'chatHistoryOpen',
   'maxConcurrency',

@@ -556,6 +556,8 @@ export function hydrateStoreFromSettings(settings: GlobalSettings): void {
 
   useAppStore.setState({
     theme: settings.theme as unknown as import('@/store/app-store').ThemeMode,
+    fontFamilySans: settings.fontFamilySans ?? null,
+    fontFamilyMono: settings.fontFamilyMono ?? null,
     sidebarOpen: settings.sidebarOpen ?? true,
     chatHistoryOpen: settings.chatHistoryOpen ?? false,
     maxConcurrency: settings.maxConcurrency ?? 3,

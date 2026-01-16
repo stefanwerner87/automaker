@@ -510,6 +510,10 @@ export interface AppState {
   // Theme
   theme: ThemeMode;
 
+  // Fonts (global defaults)
+  fontFamilySans: string | null; // null = use default Geist Sans
+  fontFamilyMono: string | null; // null = use default Geist Mono
+
   // Features/Kanban
   features: Feature[];
 
@@ -920,11 +924,13 @@ export interface AppActions {
   getEffectiveTheme: () => ThemeMode; // Get the effective theme (project, global, or preview if set)
   setPreviewTheme: (theme: ThemeMode | null) => void; // Set preview theme for hover preview (null to clear)
 
-  // Font actions (per-project)
-  setProjectFontSans: (projectId: string, fontFamily: string | null) => void; // Set per-project UI/sans font (null to clear)
-  setProjectFontMono: (projectId: string, fontFamily: string | null) => void; // Set per-project code/mono font (null to clear)
-  getEffectiveFontSans: () => string | null; // Get effective UI font (project override or null for default)
-  getEffectiveFontMono: () => string | null; // Get effective code font (project override or null for default)
+  // Font actions (global + per-project override)
+  setFontSans: (fontFamily: string | null) => void; // Set global UI/sans font (null to clear)
+  setFontMono: (fontFamily: string | null) => void; // Set global code/mono font (null to clear)
+  setProjectFontSans: (projectId: string, fontFamily: string | null) => void; // Set per-project UI/sans font override (null = use global)
+  setProjectFontMono: (projectId: string, fontFamily: string | null) => void; // Set per-project code/mono font override (null = use global)
+  getEffectiveFontSans: () => string | null; // Get effective UI font (project override -> global -> null for default)
+  getEffectiveFontMono: () => string | null; // Get effective code font (project override -> global -> null for default)
 
   // Feature actions
   setFeatures: (features: Feature[]) => void;
@@ -1264,6 +1270,8 @@ const initialState: AppState = {
   mobileSidebarHidden: false, // Sidebar visible by default on mobile
   lastSelectedSessionByProject: {},
   theme: getStoredTheme() || 'dark', // Use localStorage theme as initial value, fallback to 'dark'
+  fontFamilySans: null, // Global UI font (null = use default Geist Sans)
+  fontFamilyMono: null, // Global code font (null = use default Geist Mono)
   features: [],
   appSpec: '',
   ipcConnected: false,
@@ -1739,7 +1747,11 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
 
   setPreviewTheme: (theme) => set({ previewTheme: theme }),
 
-  // Font actions (per-project)
+  // Font actions (global + per-project override)
+  setFontSans: (fontFamily) => set({ fontFamilySans: fontFamily }),
+
+  setFontMono: (fontFamily) => set({ fontFamilyMono: fontFamily }),
+
   setProjectFontSans: (projectId, fontFamily) => {
     // Update the project's fontFamilySans property
     const projects = get().projects.map((p) =>
@@ -1784,20 +1796,20 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
 
   getEffectiveFontSans: () => {
     const currentProject = get().currentProject;
-    // Return the project's font override, or null for default
+    // Return project override if set, otherwise global, otherwise null for default
     if (currentProject?.fontFamilySans) {
       return currentProject.fontFamilySans;
     }
-    return null;
+    return get().fontFamilySans;
   },
 
   getEffectiveFontMono: () => {
     const currentProject = get().currentProject;
-    // Return the project's font override, or null for default
+    // Return project override if set, otherwise global, otherwise null for default
     if (currentProject?.fontFamilyMono) {
       return currentProject.fontFamilyMono;
     }
-    return null;
+    return get().fontFamilyMono;
   },
 
   // Feature actions

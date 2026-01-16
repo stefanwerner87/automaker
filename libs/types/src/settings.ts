@@ -463,6 +463,12 @@ export interface GlobalSettings {
   /** Currently selected theme */
   theme: ThemeMode;
 
+  // Font Configuration
+  /** Global UI/Sans font family (undefined = use default Geist Sans) */
+  fontFamilySans?: string;
+  /** Global Code/Mono font family (undefined = use default Geist Mono) */
+  fontFamilyMono?: string;
+
   // UI State Preferences
   /** Whether sidebar is currently open */
   sidebarOpen: boolean;
