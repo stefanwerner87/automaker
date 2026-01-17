@@ -82,7 +82,7 @@ services:
         # Run the rest as automaker user
         exec gosu automaker sh -c "
           echo 'Installing dependencies...' &&
-          npm install &&
+          npm install --force &&
           echo 'Building shared packages...' &&
           npm run build:packages &&
           echo 'Starting server in development mode...' &&
