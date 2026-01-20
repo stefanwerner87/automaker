@@ -48,7 +48,17 @@ export function useBoardPersistence({ currentProject }: UseBoardPersistenceProps
           feature: result.feature,
         });
         if (result.success && result.feature) {
-          updateFeature(result.feature.id, result.feature);
+          const updatedFeature = result.feature;
+          updateFeature(updatedFeature.id, updatedFeature);
+          queryClient.setQueryData<Feature[]>(
+            queryKeys.features.all(currentProject.path),
+            (features) => {
+              if (!features) return features;
+              return features.map((feature) =>
+                feature.id === updatedFeature.id ? updatedFeature : feature
+              );
+            }
+          );
           // Invalidate React Query cache to sync UI
           queryClient.invalidateQueries({
             queryKey: queryKeys.features.all(currentProject.path),
