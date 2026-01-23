@@ -4,7 +4,6 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { createLogger } from '@automaker/utils/logger';
 import { Sidebar } from '@/components/layout/sidebar';
-import { ProjectSwitcher } from '@/components/layout/project-switcher';
 import {
   FileBrowserProvider,
   useFileBrowser,
@@ -171,8 +170,6 @@ function RootLayoutContent() {
     skipSandboxWarning,
     setSkipSandboxWarning,
     fetchCodexModels,
-    sidebarOpen,
-    toggleSidebar,
   } = useAppStore();
   const { setupComplete, codexCliStatus } = useSetupStore();
   const navigate = useNavigate();
@@ -186,7 +183,7 @@ function RootLayoutContent() {
   // Load project settings when switching projects
   useProjectSettingsLoader();
 
-  // Check if we're in compact mode (< 1240px) to hide project switcher
+  // Check if we're in compact mode (< 1240px)
   const isCompact = useIsCompact();
 
   const isSetupRoute = location.pathname === '/setup';
@@ -853,11 +850,6 @@ function RootLayoutContent() {
     );
   }
 
-  // Show project switcher on all app pages (not on dashboard, setup, or login)
-  // Also hide on compact screens (< 1240px) - the sidebar will show a logo instead
-  const showProjectSwitcher =
-    !isDashboardRoute && !isSetupRoute && !isLoginRoute && !isLoggedOutRoute && !isCompact;
-
   return (
     <>
       <main className="flex h-screen overflow-hidden" data-testid="app-container">
@@ -868,7 +860,6 @@ function RootLayoutContent() {
             aria-hidden="true"
           />
         )}
-        {showProjectSwitcher && <ProjectSwitcher />}
         <Sidebar />
         <div
           className="flex-1 flex flex-col overflow-hidden transition-all duration-300"
