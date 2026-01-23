@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -65,6 +68,7 @@ jobs:
           path: |
             apps/ui/release/*.dmg
             apps/ui/release/*.zip
+          if-no-files-found: error
           retention-days: 30
 
       - name: Upload Windows artifacts
@@ -73,6 +77,7 @@ jobs:
         with:
           name: windows-builds
           path: apps/ui/release/*.exe
+          if-no-files-found: error
           retention-days: 30
 
       - name: Upload Linux artifacts
@@ -84,6 +89,7 @@ jobs:
             apps/ui/release/*.AppImage
             apps/ui/release/*.deb
             apps/ui/release/*.rpm
+          if-no-files-found: error
           retention-days: 30
 
   upload:
@@ -113,6 +119,7 @@ jobs:
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          fail_on_unmatched_files: true
           files: |
             artifacts/macos-builds/*.dmg
             artifacts/macos-builds/*.zip
