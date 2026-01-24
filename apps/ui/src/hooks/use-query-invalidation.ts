@@ -23,6 +23,57 @@ const PROGRESS_DEBOUNCE_WAIT = 150;
 const PROGRESS_DEBOUNCE_MAX_WAIT = 2000;
 
 /**
+ * Events that should invalidate the feature list (features.all query)
+ * Note: pipeline_step_started is included to ensure Kanban board immediately reflects
+ * feature moving to custom pipeline columns (fixes GitHub issue #668)
+ */
+const FEATURE_LIST_INVALIDATION_EVENTS: AutoModeEvent['type'][] = [
+  'auto_mode_feature_complete',
+  'auto_mode_error',
+  'plan_approval_required',
+  'plan_approved',
+  'plan_rejected',
+  'pipeline_step_started',
+  'pipeline_step_complete',
+];
+
+/**
+ * Events that should invalidate a specific feature (features.single query)
+ * Note: pipeline_step_started is NOT included here because it already invalidates
+ * features.all() above, which also invalidates child queries (features.single)
+ */
+const SINGLE_FEATURE_INVALIDATION_EVENTS: AutoModeEvent['type'][] = [
+  'auto_mode_feature_start',
+  'auto_mode_phase',
+  'auto_mode_phase_complete',
+];
+
+/**
+ * Events that should invalidate running agents status
+ */
+const RUNNING_AGENTS_INVALIDATION_EVENTS: AutoModeEvent['type'][] = [
+  'auto_mode_feature_start',
+  'auto_mode_feature_complete',
+  'auto_mode_error',
+  'auto_mode_resuming_features',
+];
+
+/**
+ * Events that signal a feature is done and debounce cleanup should occur
+ */
+const FEATURE_CLEANUP_EVENTS: AutoModeEvent['type'][] = [
+  'auto_mode_feature_complete',
+  'auto_mode_error',
+];
+
+/**
+ * Type guard to check if an event has a featureId property
+ */
+function hasFeatureId(event: AutoModeEvent): event is AutoModeEvent & { featureId: string } {
+  return 'featureId' in event && typeof event.featureId === 'string';
+}
+
+/**
  * Creates a unique key for per-feature debounce tracking
  */
 function getFeatureKey(projectPath: string, featureId: string): string {
@@ -115,44 +166,22 @@ export function useAutoModeQueryInvalidation(projectPath: string | undefined) {
       // This allows polling to be disabled when WebSocket events are flowing
       recordGlobalEvent();
 
-      // Invalidate features when agent completes, errors, receives plan approval, or pipeline step changes
-      // Note: pipeline_step_started is included to ensure Kanban board immediately reflects
-      // feature moving to custom pipeline columns (fixes GitHub issue #668)
-      if (
-        event.type === 'auto_mode_feature_complete' ||
-        event.type === 'auto_mode_error' ||
-        event.type === 'plan_approval_required' ||
-        event.type === 'plan_approved' ||
-        event.type === 'plan_rejected' ||
-        event.type === 'pipeline_step_started' ||
-        event.type === 'pipeline_step_complete'
-      ) {
+      // Invalidate feature list for lifecycle events
+      if (FEATURE_LIST_INVALIDATION_EVENTS.includes(event.type)) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.features.all(currentProjectPath),
         });
       }
 
-      // Invalidate running agents on any status change
-      if (
-        event.type === 'auto_mode_feature_start' ||
-        event.type === 'auto_mode_feature_complete' ||
-        event.type === 'auto_mode_error' ||
-        event.type === 'auto_mode_resuming_features'
-      ) {
+      // Invalidate running agents on status changes
+      if (RUNNING_AGENTS_INVALIDATION_EVENTS.includes(event.type)) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.runningAgents.all(),
         });
       }
 
-      // Invalidate specific feature when it starts or has phase changes
-      // Note: pipeline_step_started is NOT included here because it already invalidates
-      // features.all() above, which also invalidates child queries (features.single)
-      if (
-        (event.type === 'auto_mode_feature_start' ||
-          event.type === 'auto_mode_phase' ||
-          event.type === 'auto_mode_phase_complete') &&
-        'featureId' in event
-      ) {
+      // Invalidate specific feature for phase changes
+      if (SINGLE_FEATURE_INVALIDATION_EVENTS.includes(event.type) && hasFeatureId(event)) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.features.single(currentProjectPath, event.featureId),
         });
@@ -160,23 +189,19 @@ export function useAutoModeQueryInvalidation(projectPath: string | undefined) {
 
       // Invalidate agent output during progress updates (DEBOUNCED)
       // Uses per-feature debouncing to batch rapid progress events during streaming
-      if (event.type === 'auto_mode_progress' && 'featureId' in event) {
+      if (event.type === 'auto_mode_progress' && hasFeatureId(event)) {
         const debouncedInvalidation = getDebouncedInvalidation(event.featureId);
         debouncedInvalidation();
       }
 
       // Clean up debounced functions when feature completes or errors
       // This ensures we flush any pending invalidations and free memory
-      if (
-        (event.type === 'auto_mode_feature_complete' || event.type === 'auto_mode_error') &&
-        'featureId' in event &&
-        event.featureId
-      ) {
+      if (FEATURE_CLEANUP_EVENTS.includes(event.type) && hasFeatureId(event)) {
         cleanupFeatureDebounce(event.featureId);
       }
 
       // Invalidate worktree queries when feature completes (may have created worktree)
-      if (event.type === 'auto_mode_feature_complete' && 'featureId' in event) {
+      if (event.type === 'auto_mode_feature_complete' && hasFeatureId(event)) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.worktrees.all(currentProjectPath),
         });
