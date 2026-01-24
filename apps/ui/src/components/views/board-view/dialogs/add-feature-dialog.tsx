@@ -597,7 +597,7 @@ export function AddFeatureDialog({
                       checked={requirePlanApproval}
                       onCheckedChange={(checked) => setRequirePlanApproval(!!checked)}
                       disabled={planningMode === 'skip' || planningMode === 'lite'}
-                      data-testid="add-feature-require-approval-checkbox"
+                      data-testid="add-feature-planning-require-approval-checkbox"
                     />
                     <Label
                       htmlFor="add-feature-require-approval"
