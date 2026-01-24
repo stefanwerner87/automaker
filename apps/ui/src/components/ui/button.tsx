@@ -38,14 +38,14 @@ const buttonVariants = cva(
 );
 
 /** Button variants that have colored backgrounds requiring foreground spinner color */
-const COLORED_BACKGROUND_VARIANTS = ['default', 'destructive'] as const;
+const COLORED_BACKGROUND_VARIANTS = new Set<string>(['default', 'destructive']);
 
 /** Get spinner variant based on button variant - use foreground for colored backgrounds */
 function getSpinnerVariant(
   buttonVariant: VariantProps<typeof buttonVariants>['variant']
 ): SpinnerVariant {
-  // undefined defaults to 'default' variant which has a colored background
-  if (!buttonVariant || COLORED_BACKGROUND_VARIANTS.includes(buttonVariant as any)) {
+  const variant = buttonVariant ?? 'default';
+  if (COLORED_BACKGROUND_VARIANTS.has(variant)) {
     return 'foreground';
   }
   // outline, secondary, ghost, link, animated-outline use standard backgrounds
